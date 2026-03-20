@@ -2,31 +2,48 @@ name: Build Android APK
 on:
   push:
     branches: [ main ]
+  workflow_dispatch: # Bu sayede GitHub üzerinden manuel de tetikleyebilirsiniz
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js
+      - name: Kodu İndir
+        uses: actions/checkout@v4
+
+      - name: Node.js Kurulumu
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-      - name: Install Dependencies
-        run: npm install
-      - name: Sync Capacitor
-        run: npx cap sync android
-      - name: Setup Java
+
+      - name: Java Kurulumu
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-      - name: Build APK
+
+      - name: Capacitor Projesini Otomatik Oluştur
+        run: |
+          # 1. npm paket dosyasını oluştur ve eklentileri kur
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+
+          # 2. www adında bir klasör aç ve index.html'i içine kopyala
+          mkdir -p www
+          cp index.html www/
+
+          # 3. Capacitor'u kur ve Android klasörünü oluştur
+          npx cap init EnvanterApp com.benimadim.envanter --web-dir www
+          npx cap add android
+
+      - name: APK'yı Derle
         working-directory: ./android
         run: |
           chmod +x ./gradlew
           ./gradlew assembleDebug
-      - name: Upload APK
+
+      - name: APK Dosyasını Yükle
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug.apk
+          name: EnvanterApp.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
